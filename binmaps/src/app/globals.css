@@ -33,3 +33,23 @@ body {
     display: none;
   }
 }
+
+body {
+  @apply bg-background text-foreground;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+
+
+/* Navigation bar height */
+.navigation-bar {
+  @apply fixed top-0 w-full z-50;
+  height: 24px; /* Apple's recommended navigation bar height */
+}
+
+/* Tab bar height */
+.tab-bar {
+  @apply fixed bottom-0 w-full z-50;
+  height: 24px; /* Apple's recommended tab bar height */
+}
