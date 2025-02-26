@@ -17,8 +17,8 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState({ lat: 51.5074, lng: -0.1278 });
   const [loading, setLoading] = useState(true);
   const [recyclingCenters, setRecyclingCenters] = useState<google.maps.places.PlaceResult[]>([]);
-  const [map, setMap] = useState(null);
-  const [selectedCenter, setSelectedCenter] = useState(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [selectedCenter, setSelectedCenter] = useState<google.maps.places.PlaceResult | null>(null);
 
   const searchRecyclingCenters = () => {
     if (!map || !window.google) return;
@@ -77,7 +77,7 @@ export default function Home() {
             mapContainerStyle={containerStyle}
             center={userLocation}
             zoom={14}
-            onLoad={map => {
+            onLoad={(map: google.maps.Map) => {
               setMap(map);
               setTimeout(() => searchRecyclingCenters(), 1000);
             }}
