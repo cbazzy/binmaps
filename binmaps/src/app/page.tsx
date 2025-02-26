@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -17,8 +16,8 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState({ lat: 51.5074, lng: -0.1278 });
   const [loading, setLoading] = useState(true);
   const [recyclingCenters, setRecyclingCenters] = useState<google.maps.places.PlaceResult[]>([]);
-  const [map, setMap] = useState(null);
-  const [selectedCenter, setSelectedCenter] = useState(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [selectedCenter, setSelectedCenter] = useState<google.maps.places.PlaceResult | null>(null);
 
   const searchRecyclingCenters = () => {
     if (!map || !window.google) return;
@@ -61,12 +60,18 @@ export default function Home() {
   }
 
   return (
-    <div className={`p-4 ${inter.className}`}>
-      <div className="flex justify-center items-center gap-2 pb-4">
+    <div className={`p-4 min-h-screen ${inter.className}`}>
+      <div className="flex justify-between items-center gap-2 pb-4">
         <div className="logo-light">
           <Image src="/images/binmaps.png" alt="Binmaps Logo" width={48} height={48} className="h-12 w-auto" />
         </div>
         <h1 className="text-2xl md:text-4xl font-bold">Binmaps</h1>
+        <button className="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0z" clipRule="evenodd" />
+          </svg>
+          Login
+        </button>
       </div>
       <div className="mb-4">
         <LoadScript 
@@ -77,7 +82,7 @@ export default function Home() {
             mapContainerStyle={containerStyle}
             center={userLocation}
             zoom={14}
-            onLoad={map => {
+            onLoad={(map: google.maps.Map) => {
               setMap(map);
               setTimeout(() => searchRecyclingCenters(), 1000);
             }}
@@ -94,22 +99,24 @@ export default function Home() {
                 strokeWeight: 1,
               }}
             />
-            {recyclingCenters.map((center, i) => (
-              <Marker
-                key={i}
-                position={{
-                  lat: center.geometry.location.lat(),
-                  lng: center.geometry.location.lng()
-                }}
-                onClick={() => setSelectedCenter(center)}
-                title={center.name}
-                icon={{
-                  url: 'https://maps.google.com/mapfiles/ms/icons/recycling.png',
-                  scaledSize: new window.google.maps.Size(32, 32)
-                }}
-              />
-            ))}
-            {selectedCenter && (
+            {recyclingCenters.map((center, i) => 
+              center.geometry?.location ? (
+                <Marker
+                  key={i}
+                  position={{
+                    lat: center.geometry.location.lat(),
+                    lng: center.geometry.location.lng()
+                  }}
+                  onClick={() => setSelectedCenter(center)}
+                  title={center.name}
+                  icon={{
+                    url: 'https://maps.google.com/mapfiles/ms/icons/recycling.png',
+                    scaledSize: new window.google.maps.Size(32, 32)
+                  }}
+                />
+              ) : null
+            )}
+            {selectedCenter && selectedCenter.geometry?.location && (
               <InfoWindow
                 position={{
                   lat: selectedCenter.geometry.location.lat(),
