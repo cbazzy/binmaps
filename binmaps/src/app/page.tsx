@@ -16,7 +16,7 @@ export default function Home() {
           height={300}
         />
       </div>
-      <p>Find the nearest bin locations quickly and easily.</p>
+      <p>Find the nearest bin locations quickly and easily!</p>
     </div>
-  );
+  ); 
 }
