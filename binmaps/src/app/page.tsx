@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className={`text-center p-4 md:p-12 ${inter.className}`}>
-      <h1 className="text-2xl md:text-4xl">Welcome to Binmaps</h1>
-      <p className="text-lg md:text-xl">Coming soon!</p>
+      <h1 className="text-2xl md:text-4xl pb-4 font-bold">Welcome to Binmaps</h1>
+      <p className="text-lg md:text-xl pt-4">Coming soon!</p>
       <div className="flex justify-center items-center my-4">
         <Image
           src="/images/binmaps.png"
