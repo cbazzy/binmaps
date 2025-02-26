@@ -16,7 +16,7 @@ const containerStyle = {
 export default function Home() {
   const [userLocation, setUserLocation] = useState({ lat: 51.5074, lng: -0.1278 });
   const [loading, setLoading] = useState(true);
-  const [recyclingCenters, setRecyclingCenters] = useState([]);
+  const [recyclingCenters, setRecyclingCenters] = useState<google.maps.places.PlaceResult[]>([]);
   const [map, setMap] = useState(null);
   const [selectedCenter, setSelectedCenter] = useState(null);
 
@@ -31,7 +31,7 @@ export default function Home() {
     };
 
     service.nearbySearch(request, (results, status) => {
-      if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
         setRecyclingCenters(results);
       }
     });
