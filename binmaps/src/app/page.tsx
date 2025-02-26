@@ -18,5 +18,5 @@ export default function Home() {
       </div>
       <p>Find the nearest bin locations quickly and easily!</p>
     </div>
-  ); 
+  );
 }
