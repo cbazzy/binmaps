@@ -118,18 +118,10 @@ const isRecyclingRelated = (place: google.maps.places.PlaceResult): { isRelated:
 
 // Move searchTerms outside the function to make it available for the dependency array
 const searchTerms = [
-  'recycling center',
-  'waste disposal',
+  'household recycling center',
   'bottle bank',
   'charity shop',
-  'household waste',
-  'recycling point', 
-  'recycling bin',
-  'waste management',
   'tip',
-  'dump',
-  'recycling facility',
-  'civic amenity site'
 ];
 
 export default function Home() {
@@ -228,7 +220,7 @@ const searchNearbyLocations = useCallback(() => {
                 'meal_takeaway', 'school', 'pharmacy', 'beauty_salon', 'hair_care', 
                 'gym', 'spa', 'bank', 'furniture_store', 'clothing_store', 'movie_theater', 
                 'hotel', 'bakery', 'supermarket', 'shopping_mall', 'dentist',
-                'doctor', 'finance', 'accounting', 'insurance_agency'
+                'doctor', 'finance', 'accounting', 'insurance_agency', 'skip'
               ];
               
               const placeTypes = result.types || [];
