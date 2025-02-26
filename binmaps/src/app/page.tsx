@@ -61,7 +61,10 @@ export default function Home() {
 
   return (
     <div className={`p-4 ${inter.className}`}>
-      <h1 className="text-2xl md:text-4xl pb-4 font-bold text-center">Binmaps</h1>
+      <div className="flex justify-center items-center gap-2 pb-4">
+        <img src="/images/logo.png" alt="Binmaps Logo" className="h-12" />
+        <h1 className="text-2xl md:text-4xl font-bold">Binmaps</h1>
+      </div>
       <div className="mb-4">
         <LoadScript 
           googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
