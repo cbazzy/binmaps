@@ -85,9 +85,9 @@ export default function Home() {
               center={userLocation}
               radius={5000}
               options={{
-                fillColor: '#4285F4',
+                fillColor: 'var(--marker-bg)',
                 fillOpacity: 0.1,
-                strokeColor: '#4285F4',
+                strokeColor: 'var(--marker-bg)',
                 strokeOpacity: 0.8,
                 strokeWeight: 1,
               }}
