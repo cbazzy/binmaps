@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { GoogleMap, LoadScript, Marker, Circle, InfoWindow } from '@react-google-maps/api';
 import { Inter } from 'next/font/google';
+import Image from 'next/image';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -62,7 +63,7 @@ export default function Home() {
   return (
     <div className={`p-4 ${inter.className}`}>
       <div className="flex justify-center items-center gap-2 pb-4">
-        <img src="/images/logo.png" alt="Binmaps Logo" className="h-12" />
+        <Image src="/images/logo.png" alt="Binmaps Logo" width={48} height={48} className="h-12 w-auto" />
         <h1 className="text-2xl md:text-4xl font-bold">Binmaps</h1>
       </div>
       <div className="mb-4">
