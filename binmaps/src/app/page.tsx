@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, Circle } from '@react-google-maps/api';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -15,6 +15,25 @@ const containerStyle = {
 export default function Home() {
   const [userLocation, setUserLocation] = useState({ lat: 51.5074, lng: -0.1278 });
   const [loading, setLoading] = useState(true);
+  const [recyclingCenters, setRecyclingCenters] = useState([]);
+  const [map, setMap] = useState(null);
+
+  const searchRecyclingCenters = () => {
+    if (!map || !window.google) return;
+    
+    const service = new window.google.maps.places.PlacesService(map);
+    const request = {
+      location: userLocation,
+      radius: 5000,
+      keyword: 'recycling center'
+    };
+
+    service.nearbySearch(request, (results, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+        setRecyclingCenters(results);
+      }
+    });
+  };
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -47,9 +66,38 @@ export default function Home() {
           <GoogleMap
             mapContainerStyle={containerStyle}
             center={userLocation}
-            zoom={15}
+            zoom={14}
+            onLoad={map => {
+              setMap(map);
+              setTimeout(() => searchRecyclingCenters(), 1000);
+            }}
           >
             <Marker position={userLocation} title="You are here" />
+            <Circle
+              center={userLocation}
+              radius={5000}
+              options={{
+                fillColor: '#4285F4',
+                fillOpacity: 0.1,
+                strokeColor: '#4285F4',
+                strokeOpacity: 0.8,
+                strokeWeight: 1,
+              }}
+            />
+            {recyclingCenters.map((center, i) => (
+              <Marker
+                key={i}
+                position={{
+                  lat: center.geometry.location.lat(),
+                  lng: center.geometry.location.lng()
+                }}
+                title={center.name}
+                icon={{
+                  url: 'https://maps.google.com/mapfiles/ms/icons/recycling.png',
+                  scaledSize: new window.google.maps.Size(32, 32)
+                }}
+              />
+            ))}
           </GoogleMap>
         </LoadScript>
       </div>
