@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { GoogleMap, LoadScript, Marker, Circle, InfoWindow } from '@react-google-maps/api';
 import { Inter } from 'next/font/google';
 import Image from 'next/image';
@@ -10,34 +10,301 @@ const inter = Inter({ subsets: ['latin'] });
 
 const containerStyle = {
   width: '100%',
-  height: 'calc(100vh - 128px)', // Adjust for fixed top and bottom bars
+height: 'calc(100vh - 128px)', // Adjust for fixed top and bottom bars
 };
 
+// Update the type to include the locationType field
+interface EnhancedPlaceResult extends google.maps.places.PlaceResult {
+  locationType?: string;
+  confidence?: number; // Added confidence score for better filtering
+}
+
+// Helper function to get marker icon based on location type
+const getMarkerIcon = (locationType?: string) => {
+  switch (locationType) {
+    case 'recycling center':
+      return 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+    case 'waste disposal':
+      return 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+    case 'bottle bank':
+      return 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+    case 'charity shop':
+      return 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png';
+    case 'household waste':
+    case 'recycling point':
+    case 'recycling bin':
+      return 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+    case 'waste management':
+    case 'tip':
+    case 'dump':
+      return 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+    default:
+      return 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+  }
+};
+
+// Helper function to determine if a place is genuinely a recycling-related location
+const isRecyclingRelated = (place: google.maps.places.PlaceResult): { isRelated: boolean; confidence: number } => {
+  const name = (place.name || '').toLowerCase();
+  const types = place.types || [];
+  const vicinity = (place.vicinity || '').toLowerCase();
+  const formattedAddress = (place.formatted_address || '').toLowerCase();
+  const address = vicinity || formattedAddress;
+  
+  let confidence = 0;
+  
+  // Strong indicators in name (high confidence)
+  const nameIndicators = {
+    high: ['recycl', 'waste', 'dispos', 'environment', 'bottle bank', 'tip', 'dump', 'civic amenity'],
+    medium: ['green', 'eco', 'bin', 'scrap', 'household'],
+    low: ['community', 'center', 'centre', 'collection']
+  };
+  
+  // Check for high confidence indicators
+  if (nameIndicators.high.some(term => name.includes(term))) {
+    confidence += 80;
+  }
+  
+  // Medium confidence indicators
+  else if (nameIndicators.medium.some(term => name.includes(term))) {
+    confidence += 50;
+  }
+  
+  // Low confidence indicators
+  else if (nameIndicators.low.some(term => name.includes(term))) {
+    confidence += 30;
+  }
+  
+  // Check address indicators
+  const addressIndicators = ['recycling', 'waste', 'environmental', 'civic'];
+  if (addressIndicators.some(term => address.includes(term))) {
+    confidence += 40;
+  }
+  
+  // Check for unwanted place types that suggest it's not a recycling center
+  const unwantedTypes = [
+    'restaurant', 'cafe', 'food', 'lodging', 'bar', 'meal_delivery', 
+    'meal_takeaway', 'school', 'pharmacy', 'beauty_salon', 'hair_care', 
+    'gym', 'spa', 'bank', 'movie_theater', 'hotel', 'bakery', 'dentist'
+  ];
+  
+  if (types.some(type => unwantedTypes.includes(type))) {
+    confidence -= 70;
+  }
+  
+  // For charity shops (special case)
+  if (name.includes('charity') || name.includes('donat') || 
+      (types.includes('store') && !unwantedTypes.some(type => types.includes(type)))) {
+    const charityIndicators = [
+      'oxfam', 'salvation', 'red cross', 'cancer', 'hospice', 'heart', 
+      'age uk', 'barnardo', 'scope', 'mind', 'british heart', 'charity', 'thrift'
+    ];
+    
+    if (charityIndicators.some(term => name.includes(term))) {
+      confidence += 60;
+    }
+  }
+  
+  // Explicitly check for council or municipal references
+  if (name.includes('council') || name.includes('municipal') || name.includes('borough')) {
+    confidence += 40;
+  }
+  
+  return { 
+    isRelated: confidence > 30, // Threshold for inclusion
+    confidence 
+  };
+};
+
+// Move searchTerms outside the function to make it available for the dependency array
+const searchTerms = [
+  'recycling center',
+  'waste disposal',
+  'bottle bank',
+  'charity shop',
+  'household waste',
+  'recycling point', 
+  'recycling bin',
+  'waste management',
+  'tip',
+  'dump',
+  'recycling facility',
+  'civic amenity site'
+];
+
 export default function Home() {
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
   const [userLocation, setUserLocation] = useState({ lat: 51.5074, lng: -0.1278 });
   const [loading, setLoading] = useState(true);
-  const [recyclingCenters, setRecyclingCenters] = useState<google.maps.places.PlaceResult[]>([]);
+  const [recyclingCenters, setRecyclingCenters] = useState<EnhancedPlaceResult[]>([]);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [selectedCenter, setSelectedCenter] = useState<google.maps.places.PlaceResult | null>(null);
+  const [selectedCenter, setSelectedCenter] = useState<EnhancedPlaceResult | null>(null);
   const [activeTab, setActiveTab] = useState('map');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchComplete, setSearchComplete] = useState(false);
 
-  const searchRecyclingCenters = () => {
-    if (!map || !window.google) return;
+  // Get place details for enhanced information
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getPlaceDetails = (placeId: string): Promise<google.maps.places.PlaceResult> => {
+    return new Promise((resolve, reject) => {
+      if (!map) {
+        reject("Map not available");
+        return;
+      }
+
+      const service = new window.google.maps.places.PlacesService(map);
+      service.getDetails({ placeId }, (place, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+          resolve(place);
+        } else {
+          reject(`Failed to get place details: ${status}`);
+        }
+      });
+    });
+  };
+  
+
+const searchNearbyLocations = useCallback(() => {
+  if (!map) {
+    console.error("Map not available");
+    setSearchComplete(true);
+    return;
+  }
+  
+  if (!window.google || !window.google.maps || !window.google.maps.places) {
+    console.error("Google Maps Places API not available");
+    setSearchComplete(true);
+    return;
+  }
+  
+  console.log("Starting search for recycling locations...");
+  
+  // Create an array to store all results
+  const allLocations: EnhancedPlaceResult[] = [];
+  setSearchComplete(false);
+  
+  // Use the searchTerms from outside the function
+  
+  const service = new window.google.maps.places.PlacesService(map);
+  
+  // Create a counter to track completed searches
+  let searchesCompleted = 0;
+  
+  // Set a timeout to ensure searchComplete gets set even if something goes wrong
+  const searchTimeout = setTimeout(() => {
+    if (!searchComplete) {
+      console.log("Search timeout reached - setting searchComplete to true");
+      setSearchComplete(true);
+    }
+  }, 15000); // 15 seconds timeout
+  
+  // Perform a search for each term
+  searchTerms.forEach(term => {
+    console.log(`Searching for: ${term}`);
     
-    const service = new window.google.maps.places.PlacesService(map);
     const request = {
       location: userLocation,
       radius: 5000,
-      keyword: 'recycling center'
+      query: term  // Use query instead of keyword for better results
     };
-
-    service.nearbySearch(request, (results, status) => {
-      if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
-        setRecyclingCenters(results);
+    
+    try {
+      service.textSearch(request, (results, status) => {
+        searchesCompleted++;
+        console.log(`Search completed for "${term}": ${status}, found ${results?.length || 0} results`);
+        
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+          // Process each result with more comprehensive filtering
+          results.forEach(async result => {
+            try {
+              // Skip if we already have this place
+              if (allLocations.some(loc => loc.place_id === result.place_id)) {
+                return;
+              }
+              
+              // Skip places that are clearly not what we want based on types
+              const unwantedTypes = [
+                'restaurant', 'hospital', 'cafe', 'lodging', 'bar', 'meal_delivery', 
+                'meal_takeaway', 'school', 'pharmacy', 'beauty_salon', 'hair_care', 
+                'gym', 'spa', 'bank', 'furniture_store', 'clothing_store', 'movie_theater', 
+                'hotel', 'bakery', 'supermarket', 'shopping_mall', 'dentist',
+                'doctor', 'finance', 'accounting', 'insurance_agency'
+              ];
+              
+              const placeTypes = result.types || [];
+              
+              // Skip if it contains obvious unwanted types
+              if (placeTypes.some(type => unwantedTypes.includes(type))) {
+                return;
+              }
+              
+              // Evaluate if this is recycling-related
+              const { isRelated, confidence } = isRecyclingRelated(result);
+              
+              if (isRelated) {
+                // Log finding a valid location
+                console.log(`Found valid location: ${result.name} (${term}), confidence: ${confidence}`);
+                
+                // Add with location type and confidence score
+                const enhancedResult: EnhancedPlaceResult = {
+                  ...result,
+                  locationType: term,
+                  confidence
+                };
+                
+                // Add to our collection
+                allLocations.push(enhancedResult);
+                
+                // Update state incrementally to show results as they come in
+                setRecyclingCenters(prev => [...prev, enhancedResult]);
+              }
+            } catch (error) {
+              console.error("Error processing result:", error);
+            }
+          });
+        }
+        
+        // When all searches are completed, update state one final time
+        if (searchesCompleted === searchTerms.length) {
+          clearTimeout(searchTimeout); // Clear the timeout since we completed naturally
+          
+          console.log(`All searches completed. Found ${allLocations.length} locations.`);
+          
+          // Remove duplicates based on place_id
+          const uniqueLocations = Array.from(
+            new Map(allLocations.map(item => [item.place_id, item])).values()
+          );
+          
+          // Sort by confidence score
+          const sortedLocations = uniqueLocations.sort((a, b) => 
+            (b.confidence || 0) - (a.confidence || 0)
+          );
+          
+          console.log(`After removing duplicates: ${uniqueLocations.length} locations.`);
+          
+          setRecyclingCenters(sortedLocations);
+          setSearchComplete(true);
+        }
+      });
+    } catch (error) {
+      console.error(`Error in search for "${term}":`, error);
+      searchesCompleted++;
+      
+      // If this was the last search, make sure we set searchComplete
+      if (searchesCompleted === searchTerms.length) {
+        setSearchComplete(true);
       }
-    });
-  };
+    }
+  });
+  
+  // Also set a flag if no results found after some time
+  setTimeout(() => {
+    if (recyclingCenters.length === 0 && !searchComplete) {
+      console.log("No results found after 5 seconds, updating UI");
+      setSearchComplete(true);
+    }
+  }, 5000);
+}, [map, userLocation, recyclingCenters.length, searchComplete]); // Remove searchTerms.length
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -71,6 +338,24 @@ export default function Home() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (map && window.google?.maps?.places) {
+      console.log("Google Maps API, map, and Places API all available - starting search");
+      // Add a small delay to ensure everything is ready
+      const searchTimer = setTimeout(() => {
+        searchNearbyLocations();
+      }, 500);
+      return () => clearTimeout(searchTimer);
+    } else if (map) {
+      console.log("Map available but Places API not ready yet:", {
+        map: !!map,
+        google: !!window.google,
+        mapsAPI: window.google ? !!window.google.maps : false,
+        placesAPI: window.google?.maps ? !!window.google.maps.places : false
+      });
+    }
+  }, [map, searchNearbyLocations]);
 
   // Define animation variants
   const tabVariants = {
@@ -219,28 +504,50 @@ export default function Home() {
 
       {/* Main Content - Adjusted with padding for fixed headers */}
       <div className="flex-1 pt-16 pb-16">
-        <LoadScript 
-          googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
-          libraries={['places']}
-        >
-          <GoogleMap
-            mapContainerStyle={containerStyle}
-            center={userLocation}
-            zoom={14}
-            onLoad={(map: google.maps.Map) => {
-              setMap(map);
-              setTimeout(() => searchRecyclingCenters(), 1000);
-            }}
-            options={{
-              disableDefaultUI: true,
-              zoomControl: false,
-              fullscreenControl: false,
-              streetViewControl: false,
-              mapTypeControl: false
-            }}
-          >
+      <LoadScript 
+  googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
+  libraries={['places']}
+  onLoad={() => {
+    console.log("LoadScript onLoad called");
+    setGoogleMapsLoaded(true);
+  }}
+  onError={(error) => {
+    console.error("Google Maps failed to load:", error);
+  }}
+>
+<GoogleMap
+  mapContainerStyle={containerStyle}
+  center={userLocation}
+  zoom={14}
+  onLoad={(mapInstance) => {
+    console.log("Map loaded successfully, storing map instance");
+    // Store the map instance first
+    setMap(mapInstance);
+    
+    // Don't call searchNearbyLocations here directly
+    // It will be called by the useEffect that depends on map
+  }}
+  onUnmount={() => {
+    console.log("Map unmounted");
+    setMap(null);
+  }}
+  options={{
+    disableDefaultUI: true,
+    zoomControl: false,
+    fullscreenControl: false,
+    streetViewControl: false,
+    mapTypeControl: false
+  }}
+>
             {/* Map components */}
-            <Marker position={userLocation} title="You are here" />
+            <Marker 
+              position={userLocation} 
+              title="You are here"
+              icon={googleMapsLoaded ? {
+                url: "https://maps.google.com/mapfiles/ms/icons/pink-dot.png",
+                scaledSize: new window.google.maps.Size(36, 36)
+              } : undefined}
+            />
             <Circle
               center={userLocation}
               radius={5000}
@@ -252,7 +559,7 @@ export default function Home() {
                 strokeWeight: 1,
               }}
             />
-            {recyclingCenters.map((center, i) => 
+            {googleMapsLoaded && recyclingCenters.map((center, i) => 
               center.geometry?.location ? (
                 <Marker
                   key={i}
@@ -263,13 +570,13 @@ export default function Home() {
                   onClick={() => setSelectedCenter(center)}
                   title={center.name}
                   icon={{
-                    url: 'https://maps.google.com/mapfiles/ms/icons/recycling.png',
+                    url: getMarkerIcon(center.locationType),
                     scaledSize: new window.google.maps.Size(32, 32)
                   }}
                 />
               ) : null
             )}
-            {selectedCenter && selectedCenter.geometry?.location && (
+            {googleMapsLoaded && selectedCenter && selectedCenter.geometry?.location && (
               <InfoWindow
                 position={{
                   lat: selectedCenter.geometry.location.lat(),
@@ -279,13 +586,33 @@ export default function Home() {
               >
                 <div className="p-2">
                   <h3 className="font-bold">{selectedCenter.name}</h3>
-                  <p>{selectedCenter.vicinity}</p>
+                  <p className="text-sm text-primary">{selectedCenter.locationType}</p>
+                  <p>{selectedCenter.vicinity || selectedCenter.formatted_address}</p>
                   {selectedCenter.rating && (
                     <p>Rating: {selectedCenter.rating} ⭐</p>
                   )}
                 </div>
               </InfoWindow>
             )}
+            
+{/* Loading indicator and no results message */}
+{!searchComplete && recyclingCenters.length === 0 ? (
+  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white py-2 px-4 rounded-full shadow-md z-10">
+    <div className="flex items-center gap-2">
+      <div className="loading loading-spinner loading-xs"></div>
+      <span className="text-sm text-black">Finding recycling locations...</span>
+    </div>
+  </div>
+) : searchComplete && recyclingCenters.length === 0 && (
+  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white py-2 px-4 rounded-full shadow-md z-10">
+    <div className="flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span className="text-sm text-black">No recycling locations found nearby</span>
+    </div>
+  </div>
+)}
           </GoogleMap>
         </LoadScript>
       </div>
