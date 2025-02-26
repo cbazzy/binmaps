@@ -63,7 +63,10 @@ export default function Home() {
     <div className={`p-4 ${inter.className}`}>
       <h1 className="text-2xl md:text-4xl pb-4 font-bold text-center">Binmaps</h1>
       <div className="mb-4">
-        <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+        <LoadScript 
+          googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
+          libraries={['places']}
+        >
           <GoogleMap
             mapContainerStyle={containerStyle}
             center={userLocation}
