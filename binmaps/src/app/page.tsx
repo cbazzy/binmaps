@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 const containerStyle = {
   width: '100%',
-  height: 'calc(100vh - 128px)', // Adjust for top and bottom bars
+  height: 'calc(100vh - 128px)', // Adjust for fixed top and bottom bars
 };
 
 export default function Home() {
@@ -110,27 +110,27 @@ export default function Home() {
   }
 
   return (
-    <div className={`${inter.className} h-screen flex flex-col bg-base-100`}>
-      {/* iOS-style Navigation Bar */}
-      <div className="navbar bg-base-100 border-b border-base-200 px-4 h-16 shadow-sm z-50">
-        <div className="navbar-start">
-          <motion.button 
-            className="btn btn-ghost btn-circle"
-            whileTap={{ scale: 0.95 }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </motion.button>
-        </div>
-        <div className="navbar-center">
-          <div className="flex items-center gap-2">
-            <Image src="/images/binmaps.png" alt="Binmaps Logo" width={24} height={24} className="w-6 h-6" />
-            <h1 className="text-xl font-semibold">Binmaps</h1>
+    <div className={`${inter.className} h-screen flex flex-col bg-base-100 overflow-hidden`}>
+      {/* iOS-style Navigation Bar - Fixed to top */}
+      <div className="fixed top-0 left-0 right-0 bg-base-100 border-b border-base-200 px-4 h-16 shadow-sm z-50">
+        <div className="flex justify-between items-center h-full">
+          <div className="flex-none">
+            <motion.button 
+              className="btn btn-ghost btn-circle"
+              whileTap={{ scale: 0.95 }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </motion.button>
           </div>
-        </div>
-        <div className="navbar-end">
-          <div className="menu-container relative">
+          <div className="flex-1 flex justify-center items-center">
+            <div className="flex items-center gap-2">
+              <Image src="/images/binmaps.png" alt="Binmaps Logo" width={24} height={24} className="w-6 h-6" />
+              <h1 className="text-xl font-semibold">Binmaps</h1>
+            </div>
+          </div>
+          <div className="flex-none menu-container">
             <motion.button 
               className="btn btn-ghost btn-circle"
               onClick={() => setMenuOpen(!menuOpen)}
@@ -157,6 +157,7 @@ export default function Home() {
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   >
                     <ul className="menu bg-base-100 p-2 shadow-lg rounded-box w-56">
+                      {/* Menu items remain the same */}
                       <li>
                         <motion.a 
                           className="flex items-center gap-2"
@@ -216,8 +217,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 relative">
+      {/* Main Content - Adjusted with padding for fixed headers */}
+      <div className="flex-1 pt-16 pb-16">
         <LoadScript 
           googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
           libraries={['places']}
@@ -289,88 +290,83 @@ export default function Home() {
         </LoadScript>
       </div>
 
-                {/* iOS-style Tab Bar with Framer Motion */}
-<div className="btm-nav border-t border-base-200 bg-base-100 h-16 z-30 relative align-middle">
-  {/* Fixed-width indicator at precise positions */}
-  <motion.div 
-    className="h-1 bg-primary rounded-full absolute top-0 py-10"
-    style={{ 
-      width: '40px', // Fixed width for consistent appearance
-      left: activeTab === 'map' ? 'calc(12.5% - 20px)' : 
-            activeTab === 'list' ? 'calc(37.5% - 20px)' : 
-            activeTab === 'favorite' ? 'calc(62.5% - 20px)' : 
-            'calc(87.5% - 20px)',
-      transform: 'translateX(0)'
-    }}
-    initial={false}
-    animate={{ 
-      left: activeTab === 'map' ? 'calc(12.5% - 20px)' : 
-            activeTab === 'list' ? 'calc(37.5% - 20px)' : 
-            activeTab === 'favorite' ? 'calc(62.5% - 20px)' : 
-            'calc(87.5% - 20px)'
-    }}
-    transition={{ 
-      type: 'spring', 
-      stiffness: 300, 
-      damping: 30 
-    }}
-  />
-  
-  {['map', 'list', 'favorite', 'profile'].map((tab) => {
-    const isActive = activeTab === tab;
-    let icon;
-    let label;
-    
-    switch(tab) {
-      case 'map':
-        icon = <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />;
-        label = "Map";
-        break;
-      case 'list':
-        icon = <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />;
-        label = "List";
-        break;
-      case 'favorite':
-        icon = <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />;
-        label = "Favorites";
-        break;
-      case 'profile':
-        icon = <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />;
-        label = "Profile";
-        break;
-    }
-    
-    return (
-      <motion.button
-        key={tab}
-        className="flex flex-col items-center justify-center pt-1"
-        onClick={() => setActiveTab(tab)}
-        animate={isActive ? 'selected' : 'notSelected'}
-        variants={tabVariants}
-        whileTap={{ scale: 0.95 }}
-      >
-        <div className="relative p-1.5">
-          <motion.svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="h-6 w-6"
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-            strokeWidth={isActive ? 2 : 1.5}
-            variants={tabIconVariants}
-          >
-            {icon}
-          </motion.svg>
-        </div>
-        <motion.span 
-          className="text-xs mt-1"
-          animate={{ fontWeight: isActive ? 500 : 400 }}
-        >
-          {label}
-        </motion.span>
-      </motion.button>
-    );
-  })}
-</div>
+      {/* iOS-style Tab Bar - Fixed to bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-200 h-16 z-30 flex">
+        {/* Fixed-width indicator at precise positions */}
+        <motion.div 
+          className="h-1 bg-primary rounded-full absolute top-0"
+          style={{ 
+            width: '40px', // Fixed width for consistent appearance
+          }}
+          initial={false}
+          animate={{ 
+            left: activeTab === 'map' ? 'calc(12.5% - 20px)' : 
+                  activeTab === 'list' ? 'calc(37.5% - 20px)' : 
+                  activeTab === 'favorite' ? 'calc(62.5% - 20px)' : 
+                  'calc(87.5% - 20px)'
+          }}
+          transition={{ 
+            type: 'spring', 
+            stiffness: 300, 
+            damping: 30 
+          }}
+        />
+        
+        {['map', 'list', 'favorite', 'profile'].map((tab) => {
+          const isActive = activeTab === tab;
+          let icon;
+          let label;
+          
+          switch(tab) {
+            case 'map':
+              icon = <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />;
+              label = "Map";
+              break;
+            case 'list':
+              icon = <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />;
+              label = "List";
+              break;
+            case 'favorite':
+              icon = <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />;
+              label = "Favorites";
+              break;
+            case 'profile':
+              icon = <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />;
+              label = "Profile";
+              break;
+          }
+          
+          return (
+            <motion.button
+              key={tab}
+              className="flex-1 flex flex-col items-center justify-center pt-1"
+              onClick={() => setActiveTab(tab)}
+              animate={isActive ? 'selected' : 'notSelected'}
+              variants={tabVariants}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="relative p-1.5">
+                <motion.svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-6 w-6"
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                  strokeWidth={isActive ? 2 : 1.5}
+                  variants={tabIconVariants}
+                >
+                  {icon}
+                </motion.svg>
+              </div>
+              <motion.span 
+                className="text-xs mt-1"
+                animate={{ fontWeight: isActive ? 500 : 400 }}
+              >
+                {label}
+              </motion.span>
+            </motion.button>
+          );
+        })}
+      </div>
     </div>
   );
 }
