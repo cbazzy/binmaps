@@ -63,7 +63,9 @@ export default function Home() {
   return (
     <div className={`p-4 ${inter.className}`}>
       <div className="flex justify-center items-center gap-2 pb-4">
-        <Image src="/images/binmaps.png" alt="Binmaps Logo" width={48} height={48} className="h-12 w-auto" />
+        <div className="logo-light">
+          <Image src="/images/binmaps.png" alt="Binmaps Logo" width={48} height={48} className="h-12 w-auto" />
+        </div>
         <h1 className="text-2xl md:text-4xl font-bold">Binmaps</h1>
       </div>
       <div className="mb-4">
