@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 const containerStyle = {
   width: '100%',
-  height: 'calc(100vh - 144px)', // Adjust for top and bottom bars
+  height: 'calc(100vh - 128px)', // Adjust for top and bottom bars
 };
 
 export default function Home() {
