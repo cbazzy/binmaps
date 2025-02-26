@@ -94,22 +94,24 @@ export default function Home() {
                 strokeWeight: 1,
               }}
             />
-            {recyclingCenters.map((center, i) => (
-              <Marker
-                key={i}
-                position={{
-                  lat: center.geometry.location.lat(),
-                  lng: center.geometry.location.lng()
-                }}
-                onClick={() => setSelectedCenter(center)}
-                title={center.name}
-                icon={{
-                  url: 'https://maps.google.com/mapfiles/ms/icons/recycling.png',
-                  scaledSize: new window.google.maps.Size(32, 32)
-                }}
-              />
-            ))}
-            {selectedCenter && (
+            {recyclingCenters.map((center, i) => 
+              center.geometry?.location ? (
+                <Marker
+                  key={i}
+                  position={{
+                    lat: center.geometry.location.lat(),
+                    lng: center.geometry.location.lng()
+                  }}
+                  onClick={() => setSelectedCenter(center)}
+                  title={center.name}
+                  icon={{
+                    url: 'https://maps.google.com/mapfiles/ms/icons/recycling.png',
+                    scaledSize: new window.google.maps.Size(32, 32)
+                  }}
+                />
+              ) : null
+            )}
+            {selectedCenter && selectedCenter.geometry?.location && (
               <InfoWindow
                 position={{
                   lat: selectedCenter.geometry.location.lat(),
