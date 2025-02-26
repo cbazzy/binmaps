@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@next/font": "^14.2.15",
     "@react-google-maps/api": "^2.20.6",
     "daisyui": "^4.12.24",
     "next": "^15.1.7",
