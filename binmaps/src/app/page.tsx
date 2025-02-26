@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { GoogleMap, LoadScript, Marker, Circle } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, Circle, InfoWindow } from '@react-google-maps/api';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -17,6 +17,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [recyclingCenters, setRecyclingCenters] = useState([]);
   const [map, setMap] = useState(null);
+  const [selectedCenter, setSelectedCenter] = useState(null);
 
   const searchRecyclingCenters = () => {
     if (!map || !window.google) return;
@@ -91,6 +92,7 @@ export default function Home() {
                   lat: center.geometry.location.lat(),
                   lng: center.geometry.location.lng()
                 }}
+                onClick={() => setSelectedCenter(center)}
                 title={center.name}
                 icon={{
                   url: 'https://maps.google.com/mapfiles/ms/icons/recycling.png',
@@ -98,6 +100,23 @@ export default function Home() {
                 }}
               />
             ))}
+            {selectedCenter && (
+              <InfoWindow
+                position={{
+                  lat: selectedCenter.geometry.location.lat(),
+                  lng: selectedCenter.geometry.location.lng()
+                }}
+                onCloseClick={() => setSelectedCenter(null)}
+              >
+                <div>
+                  <h3 className="font-bold">{selectedCenter.name}</h3>
+                  <p>{selectedCenter.vicinity}</p>
+                  {selectedCenter.rating && (
+                    <p>Rating: {selectedCenter.rating} ⭐</p>
+                  )}
+                </div>
+              </InfoWindow>
+            )}
           </GoogleMap>
         </LoadScript>
       </div>
