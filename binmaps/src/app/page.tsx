@@ -18,11 +18,8 @@ export default function Home() {
   const [recyclingCenters, setRecyclingCenters] = useState<google.maps.places.PlaceResult[]>([]);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [selectedCenter, setSelectedCenter] = useState<google.maps.places.PlaceResult | null>(null);
-<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState('map');
   const [menuOpen, setMenuOpen] = useState(false);
-=======
->>>>>>> 525fdd584c9825e1bfee4ee271dea5d845ed4f8c
 
   const searchRecyclingCenters = () => {
     if (!map || !window.google) return;
